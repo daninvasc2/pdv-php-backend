@@ -4,6 +4,10 @@ require_once 'Models/Model.php';
 
 class TipoProduto extends Model {
 
+    private $id;
+    private $nome;
+    private $porcentagem_imposto;
+
     protected $table = 'tipo_produtos';
 
     public function __construct() {

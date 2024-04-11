@@ -4,6 +4,11 @@ require_once 'Models/Model.php';
 require_once 'Utils/Utils.php';
 
 class Venda extends Model {
+
+    private $id;
+    private $data;
+    private $valor_total;
+    private $valor_total_imposto;
     protected $table = 'vendas';
 
     public function __construct() {

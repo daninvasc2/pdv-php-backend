@@ -2,6 +2,11 @@
 
 require_once 'Models/Model.php';
 class Produto extends Model {
+
+    private $id;
+    private $nome;
+    private $preco;
+    private $tipoProdutoId;
     protected $table = 'produtos';
 
     public function __construct() {
