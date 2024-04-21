@@ -3,6 +3,9 @@
 require_once 'Models/Venda/Venda.php';
 require_once 'Models/Venda/ItemVenda.php';
 require_once 'Config/Database.php';
+require_once 'Validators/Venda/CreateVendaValidator.php';
+require_once 'Validators/Venda/DeleteVendaValidator.php';
+require_once 'Validators/ItemVenda/CreateItemVendaValidator.php';
 
 class VendaController {
     public static function get(array $params = null) {
@@ -30,24 +33,14 @@ class VendaController {
     }
 
     public static function create() {
-        $dbConfig = new DatabaseConfig();
+        $dbConfig = DatabaseConfig::getInstance();
         
         try {
             $db = $dbConfig->getConnection();
             $db->beginTransaction();
             $data = json_decode(file_get_contents('php://input'));
 
-            if (!isset($data->valorTotal)) {
-                throw new Exception('Valor total é obrigatório');
-            }
-
-            if (!isset($data->valorTotalImposto)) {
-                throw new Exception('Valor dos impostos é obrigatório');
-            }
-
-            if (!isset($data->itens) || empty($data->itens)) {
-                throw new Exception('Produtos são obrigatórios');
-            }
+            CreateVendaValidator::validate($data);
 
             $valorTotalFormatado = number_format($data->valorTotal, 2, '.', '');
             $valorTotalImpostoFormatado = number_format($data->valorTotalImposto, 2, '.', '');
@@ -60,25 +53,7 @@ class VendaController {
             ]);
 
             foreach ($data->itens as $item) {
-                if (!isset($item->produtoId)) {
-                    throw new Exception('ID do produto é obrigatório');
-                }
-
-                if (!isset($item->quantidade)) {
-                    throw new Exception('Quantidade do produto é obrigatório');
-                }
-
-                if (!isset($item->valorUnitario)) {
-                    throw new Exception('Valor unitário do produto é obrigatório');
-                }
-
-                if (!isset($item->valorTotal)) {
-                    throw new Exception('Valor total do produto é obrigatório');
-                }
-
-                if (!isset($item->valorImposto)) {
-                    throw new Exception('Valor dos impostos do produto é obrigatório');
-                }
+                CreateItemVendaValidator::validate($item);
 
                 $itemVendaClass = new ItemVenda();
                 $itemVendaClass->create([
@@ -101,13 +76,12 @@ class VendaController {
     }
 
     public static function delete($id) {
-        $dbConfig = new DatabaseConfig();
+        $dbConfig = DatabaseConfig::getInstance();
         try {
             $db = $dbConfig->getConnection();
             $db->beginTransaction();
-            if (!isset($id)) {
-                throw new Exception('ID da venda é obrigatório');
-            }
+
+            DeleteVendaValidator::validate($id);
 
             $vendaClass = new Venda();
             $vendaClass->deletarItensVenda($id);

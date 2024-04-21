@@ -1,6 +1,10 @@
 <?php
 
 require_once 'Models/Produto/TipoProduto.php';
+require_once 'Validators/TipoProduto/CreateTipoProdutoValidator.php';
+require_once 'Validators/TipoProduto/DeleteTipoProdutoValidator.php';
+require_once 'Validators/TipoProduto/ShowTipoProdutoValidator.php';
+require_once 'Validators/TipoProduto/UpdateTipoProdutoValidator.php';
 
 class TipoProdutoController
 {
@@ -32,14 +36,8 @@ class TipoProdutoController
     {
         try {
             $data = json_decode(file_get_contents('php://input'));
-            
-            if (!isset($data->nome)) {
-                throw new Exception('Nome do tipo de produto é obrigatório');
-            }
 
-            if (!isset($data->porcentagemImposto)) {
-                throw new Exception('Porcentagem de imposto do tipo de produto é obrigatório');
-            }
+            CreateTipoProdutoValidator::validate($data);
 
             $tipoProdutoClass = new TipoProduto();
             $tipoProdutoClass->create([
@@ -59,17 +57,7 @@ class TipoProdutoController
         try {
             $data = json_decode(file_get_contents('php://input'));
 
-            if (!isset($data->id)) {
-                throw new Exception('ID do tipo de produto é obrigatório');
-            }
-
-            if (!isset($data->nome)) {
-                throw new Exception('Nome do tipo de produto é obrigatório');
-            }
-
-            if (!isset($data->porcentagemImposto)) {
-                throw new Exception('Porcentagem de imposto do tipo de produto é obrigatório');
-            }
+            UpdateTipoProdutoValidator::validate($data);
 
             $tipoProdutoClass = new TipoProduto();
             $tipoProdutoClass->update([
@@ -88,18 +76,9 @@ class TipoProdutoController
     public static function delete($id)
     {
         try {
-
-            if (!isset($id)) {
-                throw new Exception('ID do tipo de produto é obrigatório');
-            }
+            DeleteTipoProdutoValidator::validate($id);
 
             $tipoProdutoClass = new TipoProduto();
-            $produtos = $tipoProdutoClass->verificaVinculoProduto($id);
-
-            if ($produtos) {
-                throw new Exception('Existem produtos vinculados a este tipo de produto');
-            }
-
             $tipoProdutoClass->delete($id);
 
             echo json_encode(['success' => true, 'message' => 'Tipo de produto deletado com sucesso']);
@@ -112,9 +91,7 @@ class TipoProdutoController
     public static function show($id)
     {
         try {
-            if (!isset($id)) {
-                throw new Exception('ID do tipo de produto é obrigatório');
-            }
+            ShowTipoProdutoValidator::validate($id);
 
             $tipoProdutoClass = new TipoProduto();
             $tipoProduto = $tipoProdutoClass->findOrFail($id);

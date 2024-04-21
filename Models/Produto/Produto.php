@@ -7,7 +7,7 @@ class Produto extends Model {
     private $nome;
     private $preco;
     private $tipoProdutoId;
-    protected $table = 'produtos';
+    protected string $table = 'produtos';
 
     public function __construct() {
         parent::__construct($this->table);

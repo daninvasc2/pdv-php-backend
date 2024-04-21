@@ -8,7 +8,7 @@ class TipoProduto extends Model {
     private $nome;
     private $porcentagem_imposto;
 
-    protected $table = 'tipo_produtos';
+    protected string $table = 'tipo_produtos';
 
     public function __construct() {
         parent::__construct($this->table);

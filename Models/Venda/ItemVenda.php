@@ -10,7 +10,7 @@ class ItemVenda extends Model {
     private $valor_imposto;
     private $venda_id;
     private $produto_id;
-    protected $table = 'itens_venda';
+    protected string $table = 'itens_venda';
 
     public function __construct() {
         parent::__construct($this->table);

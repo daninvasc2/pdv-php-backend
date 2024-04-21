@@ -9,13 +9,13 @@ class Venda extends Model {
     private $data;
     private $valor_total;
     private $valor_total_imposto;
-    protected $table = 'vendas';
+    protected string $table = 'vendas';
 
     public function __construct() {
         parent::__construct($this->table);
     }
 
-    public function retornaItensVenda($id) {
+    public function retornaItensVenda(int $id): array {
         $sql = "SELECT * FROM itens_venda WHERE venda_id = :id";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(':id', $id);
@@ -53,7 +53,7 @@ class Venda extends Model {
         return $data;
     }
 
-    public function deletarItensVenda($id) {
+    public function deletarItensVenda(int $id): void {
         $sql = "DELETE FROM itens_venda WHERE venda_id = :id";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(':id', $id);

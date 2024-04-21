@@ -1,7 +1,14 @@
 <?php
 
 if (!function_exists('dd')) {
-    function dd($data)
+    /**
+     * Dump and die. It is a helper function to debug data
+     * 
+     * @param mixed $data
+     * 
+     * @return void
+     */
+    function dd(mixed $data)
     {
         echo '<pre>';
         var_dump($data);
@@ -11,21 +18,42 @@ if (!function_exists('dd')) {
 }
 
 if (!function_exists('camelCaseToSnakeCase')) {
-    function camelCaseToSnakeCase($string)
+    /**
+     * Convert camelCase to snake_case
+     * 
+     * @param string $string
+     * 
+     * @return string
+     */
+    function camelCaseToSnakeCase(string $string): string
     {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $string));
     }
 }
 
 if (!function_exists('snakeCaseToCamelCase')) {
-    function snakeCaseToCamelCase($string)
+    /**
+     * Convert snake_case to camelCase
+     * 
+     * @param string $string
+     * 
+     * @return string
+     */
+    function snakeCaseToCamelCase(string $string): string
     {
         return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $string))));
     }
 }
 
 if (!function_exists('parseGetParams')) {
-    function parseGetParams($params)
+    /**
+     * Parse GET parameters
+     * 
+     * @param string $params
+     * 
+     * @return array
+     */
+    function parseGetParams(string $params): array
     {
         $params = explode('&', $params);
         $parsedParams = [];
@@ -40,7 +68,16 @@ if (!function_exists('parseGetParams')) {
 }
 
 if (!function_exists('setEnvVars')) {
-    function setEnvVars($envPath)
+    /**
+     * Set environment variables from .env file.
+     * 
+     * @param string $envPath
+     * 
+     * @throws Exception
+     * 
+     * @return void
+     */
+    function setEnvVars(string $envPath): void
     {
         if (!file_exists($envPath)) {
             throw new Exception('Arquivo .env não encontrado');
@@ -68,7 +105,14 @@ if (!function_exists('setEnvVars')) {
 }
 
 if (!function_exists('returnCamelCaseKeys')) {
-    function returnCamelCaseKeys($data)
+    /**
+     * Return an array with camelCase keys
+     * 
+     * @param array $data
+     * 
+     * @return array
+     */
+    function returnCamelCaseKeys(array $data): array
     {
         $newData = [];
 

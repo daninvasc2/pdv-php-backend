@@ -3,17 +3,26 @@
 require_once 'Config/Database.php';
 require_once 'Utils/Utils.php';
 
+/**
+ * Base model class. It contains the basic CRUD operations.
+ */
 class Model {
-    protected $table;
-    protected $connection;
+    protected string $table;
+    protected PDO $connection;
 
-    public function __construct($table) {
+    public function __construct(string $table) {
         $this->table = $table;
-        $db = new DatabaseConfig();
+        $db = DatabaseConfig::getInstance();
         $this->connection = $db->getConnection();
     }
 
-    public function create($data)
+    /**
+     * Create a new record
+     * 
+     * @param array $data
+     * @return int
+     */
+    public function create(array $data): int
     {
         $keys = array_keys($data);
         $keys = array_map(function ($key) {
@@ -21,67 +30,81 @@ class Model {
         }, $keys);
 
         $fields = implode(', ', $keys);
-        $values = implode("', '", array_values($data));
-        
-        $sql = "INSERT INTO " . $this->table . " ($fields) VALUES ('$values')";
+        $fieldCount = count($keys);
+        $values = str_repeat("?, ", $fieldCount);
+        $values = substr($values, 0, -2);
+
+        $sql = "INSERT INTO " . $this->table . " ($fields) VALUES ($values)";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
+        $stmt->execute(array_values($data));
 
         return $this->connection->lastInsertId();
     }
 
-    public function update($data)
+    /**
+     * Update a record
+     * 
+     * @param array $data
+     * @return bool
+     */
+    public function update(array $data): bool
     {
-        if (!isset($data['id']) || empty($data['id'])) {
-            throw new Exception('ID não informado');
-        }
-
         $fields = '';
-        foreach ($data as $key => $value) {
-            $fields .= $key . " = '" . $value . "', ";
+        foreach ($data as $key => $unused) {
+            $fields .= $key . " = '?', ";
         }
         $fields = substr($fields, 0, -2);
 
-        $sql = "UPDATE " . $this->table . " SET $fields WHERE id = " . $data['id'];
+        $sql = "UPDATE " . $this->table . " SET $fields WHERE id = :id";
         $stmt = $this->connection->prepare($sql);
+        $stmt->bindValue(':id', $data['id']);
+        $stmt->execute(array_values($data));
+
+        return true;
+    }
+
+    /**
+     * Delete a record
+     * 
+     * @param int $id
+     * @return bool
+     */
+    public function delete(int $id): bool
+    {
+        $sql = "DELETE FROM " . $this->table . " WHERE id = :id";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->bindValue(':id', $id);
         $stmt->execute();
 
         return true;
     }
 
-    public function delete($id)
+    /**
+     * Find a record by ID or throw an exception
+     * 
+     * @param int $id
+     * 
+     * @throws Exception
+     * 
+     * @return array
+     */
+    public function findOrFail(int $id): array
     {
-        if (!isset($id) || empty($id)) {
-            throw new Exception('ID não informado');
-        }
-
-        $sql = "DELETE FROM " . $this->table . " WHERE id = " . $id;
+        $sql = "SELECT * FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-
-        return true;
-    }
-
-    public function findOrFail($id)
-    {
-        if (!isset($id) || empty($id)) {
-            throw new Exception('ID não informado');
-        }
-
-        $sql = "SELECT * FROM " . $this->table . " WHERE id = " . $id;
-        $stmt = $this->connection->prepare($sql);
+        $stmt->bindValue(':id', $id);
         $stmt->execute();
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$data) {
-            echo json_encode(['success' => false, 'message' => 'Registro não encontrado']);
-            return;
+            throw new Exception('Registro não encontrado');
         }
 
         foreach ($data as $key => $value) {
             if (str_contains($key, '_id')) {
-                $sql = "SELECT * FROM " . str_replace('_id', 's', $key) . " WHERE id = " . $value;
+                $sql = "SELECT * FROM " . str_replace('_id', 's', $key) . " WHERE id = :id";
                     $stmt = $this->connection->prepare($sql);
+                    $stmt->bindValue(':id', $value);
                     $stmt->execute();
 
                     $relationKey = snakeCaseToCamelCase(str_replace('_id', '', $key));
@@ -100,26 +123,42 @@ class Model {
         return $data;
     }
 
-    public function get($page, $term = '', $column = 'nome') {
+    /**
+     * Get records paginated. If a term is provided, it will search for it in the specified column
+     * 
+     * @param int $page
+     * @param string $term
+     * @param string $column
+     * 
+     * @return array
+     */
+    public function get(int $page, string $term = '', string $column = 'nome'): array {
         $sql = "SELECT * FROM " . $this->table . " WHERE 1=1 ";
 
         if (is_array($column) && $term != '') {
             $sql .= "AND (";
+
             foreach ($column as $col) {
-                $sql .= "$col ILIKE '%$term%' OR ";
+                $sql .= "$col ILIKE '%:term%' OR ";
             }
+
             $sql = substr($sql, 0, -4);
             $sql .= ")";
         }
 
         if ($term != '' && !is_array($column) && $column != '') {
-            $sql .= " AND $column ILIKE '%$term%'";
+            $sql .= " AND $column ILIKE '%:term%'";
         }
 
         $sql .= " ORDER BY id ASC";
         $sql .= " LIMIT 10 OFFSET " . ($page - 1) * 10;
 
         $stmt = $this->connection->prepare($sql);
+
+        if ($term != '' && !is_array($column) && $column != '') {
+            $stmt->bindValue(':term', $term);
+        }
+
         $stmt->execute();
 
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -128,9 +167,20 @@ class Model {
         return $data;
     }
 
-    public function getBetween($dataInicial, $dataFinal, $coluna = 'data') {
-        $sql = "SELECT * FROM " . $this->table . " WHERE $coluna BETWEEN '$dataInicial 00:00:00' AND '$dataFinal 23:59:59'";
+    /**
+     * Get paginated records between two dates
+     * 
+     * @param string $firstDate
+     * @param string $lastDate
+     * @param string $columnName
+     * 
+     * @return array
+     */
+    public function getBetween(string $firstDate, string $lastDate, string $columnName = 'data'): array {
+        $sql = "SELECT * FROM " . $this->table . " WHERE $columnName BETWEEN ':firstDate 00:00:00' AND ':lastDate 23:59:59'";
         $stmt = $this->connection->prepare($sql);
+        $stmt->bindValue(':firstDate', $firstDate);
+        $stmt->bindValue(':lastDate', $lastDate);
         $stmt->execute();
 
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -139,7 +189,12 @@ class Model {
         return $data;
     }
 
-    public function getAll()
+    /**
+     * Get all records
+     * 
+     * @return array
+     */
+    public function getAll(): array
     {
         $sql = "SELECT * FROM " . $this->table;
         $stmt = $this->connection->prepare($sql);
@@ -151,12 +206,20 @@ class Model {
         return $data;
     }
 
-    private function handleData($data) {
+    /**
+     * Handle data to return camelCase keys and inner relations
+     * 
+     * @param array $data
+     * 
+     * @return array
+     */
+    private function handleData(array $data): array {
         foreach ($data as $key => $value) {
             foreach ($value as $k => $v) {
                 if (str_contains($k, '_id')) {
-                    $sql = "SELECT * FROM " . str_replace('_id', 's', $k) . " WHERE id = " . $v;
+                    $sql = "SELECT * FROM " . str_replace('_id', 's', $k) . " WHERE id = :id";
                     $stmt = $this->connection->prepare($sql);
+                    $stmt->bindValue(':id', $v);
                     $stmt->execute();
 
                     $relationKey = snakeCaseToCamelCase(str_replace('_id', '', $k));

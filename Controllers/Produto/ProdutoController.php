@@ -1,9 +1,13 @@
 <?php
 
 require_once 'Models/Produto/Produto.php';
+require_once 'Validators/Produto/CreateProdutoValidator.php';
+require_once 'Validators/Produto/DeleteProdutoValidator.php';
+require_once 'Validators/Produto/ShowProdutoValidator.php';
+require_once 'Validators/Produto/UpdateProdutoValidator.php';
 
 class ProdutoController {
-    public static function get(array $params = null) {
+    public static function get(array $params = null): void {
         try {
             $page = $params['page'] ?? 1;
             $term = $params['pesquisa'] ?? '';
@@ -18,21 +22,10 @@ class ProdutoController {
         }
     }
 
-    public static function create() {
+    public static function create(): void {
         try {
             $data = json_decode(file_get_contents('php://input'));
-
-            if (!isset($data->nome)) {
-                throw new Exception('Nome do produto é obrigatório');
-            }
-
-            if (!isset($data->preco)) {
-                throw new Exception('Preço do produto é obrigatório');
-            }
-
-            if (!isset($data->tipoProdutoId)) {
-                throw new Exception('Tipo do produto é obrigatório');
-            }
+            CreateProdutoValidator::validate($data);
 
             $produtoClass = new Produto();
             $produtoClass->create([
@@ -48,25 +41,10 @@ class ProdutoController {
         }
     }
 
-    public static function update() {
+    public static function update(): void {
         try {
             $data = json_decode(file_get_contents('php://input'));
-
-            if (!isset($data->id)) {
-                throw new Exception('ID do produto é obrigatório');
-            }
-
-            if (!isset($data->nome)) {
-                throw new Exception('Nome do produto é obrigatório');
-            }
-
-            if (!isset($data->preco)) {
-                throw new Exception('Preço do produto é obrigatório');
-            }
-
-            if (!isset($data->tipoProdutoId)) {
-                throw new Exception('Tipo do produto é obrigatório');
-            }
+            UpdateProdutoValidator::validate($data);
 
             $produtoClass = new Produto();
             $produtoClass->update([
@@ -83,17 +61,10 @@ class ProdutoController {
         }
     }
 
-    public static function delete($id) {
+    public static function delete(int $id): void {
         try {
-            if (!isset($id)) {
-                throw new Exception('ID do produto é obrigatório');
-            }
-
+            DeleteProdutoValidator::validate($id);
             $produtoClass = new Produto();
-            if ($produtoClass->verificaSeProdutoFoiUtilizadoEmVenda($id)) {
-                throw new Exception('Produto não pode ser deletado pois está sendo utilizado em uma venda');
-            }
-
             $produtoClass->delete($id);
 
             echo json_encode(['success' => true, 'message' => 'Produto deletado com sucesso']);
@@ -103,8 +74,10 @@ class ProdutoController {
         }
     }
 
-    public static function show($id) {
+    public static function show(int $id): void {
         try {
+            ShowProdutoValidator::validate($id);
+
             $produtoClass = new Produto();
             $produto = $produtoClass->findOrFail($id);
 
